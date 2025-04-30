@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from lib.config import yacs
+from lib.utils import system_utils
 
 def parse_cfg(cfg, args):
     if len(cfg.task) == 0:
@@ -29,7 +30,8 @@ def parse_cfg(cfg, args):
     #     for module in modules:
     #         cfg[module.replace('_module', '_path')] = cfg[module].replace('.', '/') + '.py'
 
-    cur_workspace = os.environ['PWD']
+    # cur_workspace = os.environ['PWD']
+    cur_workspace = os.getcwd()
 
     # model directory
     if cfg.model_path == '':
@@ -61,6 +63,7 @@ def parse_cfg(cfg, args):
         if not os.path.exists(cfg.source_path):
             __import__('ipdb').set_trace()
     
+    print("source"+cfg.source_path)
     # log directory
     if cfg.record_dir is None:
         cfg.record_dir = os.path.join('output', 'record', cfg.task, cfg.exp_name)
@@ -100,9 +103,9 @@ def make_cfg(cfg, args):
 
 def save_cfg(cfg, model_dir, epoch=0):
     from contextlib import redirect_stdout
-    os.system('mkdir -p {}'.format(model_dir))
+    system_utils.mkdir_p(model_dir)
     cfg_dir = os.path.join(model_dir, 'configs')
-    os.system('mkdir -p {}'.format(cfg_dir))
+    system_utils.mkdir_p(cfg_dir)
 
     cfg_path = os.path.join(cfg_dir, f'config_{epoch:06d}.yaml')
     with open(cfg_path, 'w') as f:

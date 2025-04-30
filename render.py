@@ -83,8 +83,8 @@ def render_trajectory():
             visualizer.visualize(result, camera)
 
         visualizer.summarize()
-            
-if __name__ == "__main__":
+
+def start():
     print("Rendering " + cfg.model_path)
     safe_state(cfg.eval.quiet)
     
@@ -94,3 +94,7 @@ if __name__ == "__main__":
         render_trajectory()
     else:
         raise NotImplementedError()
+
+            
+if __name__ == "__main__":
+    start()

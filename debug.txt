@@ -1,0 +1,5 @@
+- downgrade vs to 2019 community
+
+- add INCLUDE, LIB env variable, solving "casset" problem :https://blog.csdn.net/yaotuzhi/article/details/107144454
+
+- install colmap first

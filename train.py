@@ -1,6 +1,8 @@
 import os
 import torch
 from random import randint
+
+from torch.nn.functional import pad
 from lib.utils.loss_utils import l1_loss, l2_loss, psnr, ssim
 from lib.utils.img_utils import save_img_torch, visualize_depth_numpy
 from lib.models.street_gaussian_renderer import StreetGaussianRenderer
@@ -15,6 +17,8 @@ from tqdm import tqdm
 from argparse import ArgumentParser, Namespace
 from lib.utils.system_utils import searchForMaxIteration
 import time
+from lib.utils import system_utils
+
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -240,8 +244,8 @@ def prepare_output_and_logger():
     os.makedirs(cfg.trained_model_dir, exist_ok=True)
     os.makedirs(cfg.record_dir, exist_ok=True)
     if not cfg.resume:
-        os.system('rm -rf {}/*'.format(cfg.record_dir))
-        os.system('rm -rf {}/*'.format(cfg.trained_model_dir))
+        system_utils.clear_dir(cfg.record_dir)
+        system_utils.clear_dir(cfg.trained_model_dir)
 
     with open(os.path.join(cfg.model_path, "cfg_args"), 'w') as cfg_log_f:
         viewer_arg = dict()
@@ -307,7 +311,8 @@ def training_report(tb_writer, iteration, scalar_stats, tensor_stats, testing_it
             tb_writer.add_scalar('test/points_total', scene.gaussians.get_xyz.shape[0], iteration)
         torch.cuda.empty_cache()
 
-if __name__ == "__main__":
+
+def start():
     print("Optimizing " + cfg.model_path)
 
     # Initialize system state (RNG)
@@ -319,3 +324,7 @@ if __name__ == "__main__":
 
     # All done
     print("\nTraining complete.")
+
+
+if __name__ == "__main__":
+    start()

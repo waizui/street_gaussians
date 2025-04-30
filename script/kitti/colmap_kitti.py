@@ -1,3 +1,4 @@
+import pathlib
 import numpy as np
 import os
 import shutil
@@ -11,6 +12,7 @@ from scipy.spatial.transform import Rotation as R
 from lib.config import cfg
 from lib.utils.kitti_utils import generate_dataparser_outputs
 from lib.utils.data_utils import get_val_frames
+from lib.utils import system_utils
 
 def image_to_mask(datadir, image_filename):
 
@@ -64,13 +66,13 @@ def run_colmap_kitti(result=None):
     mask_images_dir = os.path.join(colmap_dir, 'mask')
 
     if os.path.exists(train_images_dir):
-        os.system(f'rm -rf {train_images_dir}')
+        system_utils.del_dir(train_images_dir)
     os.makedirs(train_images_dir)
     if os.path.exists(test_images_dir):
-        os.system(f'rm -rf {test_images_dir}')  
+        system_utils.del_dir(test_images_dir)
     os.makedirs(test_images_dir)
     if os.path.exists(mask_images_dir):
-        os.system(f'rm -rf {mask_images_dir}')
+        system_utils.del_dir(mask_images_dir)
     os.makedirs(mask_images_dir)
 
     # copy images
@@ -179,7 +181,8 @@ def run_colmap_kitti(result=None):
         f.write(f'1 SIMPLE_PINHOLE {img_w} {img_h} {fx} {cx} {cy}')
 
     points3D_fn = os.path.join(images_save_dir, 'points3D.txt')
-    os.system(f'touch {points3D_fn}')
+    file_path = pathlib.Path(points3D_fn)
+    file_path.touch(exist_ok=True)
     
     triangulated_dir = os.path.join(colmap_dir, 'triangulated/sparse/model')
     os.makedirs(triangulated_dir, exist_ok=True)
@@ -191,9 +194,9 @@ def run_colmap_kitti(result=None):
             --image_path {train_images_dir} \
             --input_path {colmap_dir}/created/sparse/model --output_path {colmap_dir}/triangulated/sparse/model')
 
-    os.system(f'rm -rf {train_images_dir}')
-    os.system(f'rm -rf {test_images_dir}')  
-    os.system(f'rm -rf {mask_images_dir}')
+    system_utils.del_dir(train_images_dir)
+    system_utils.del_dir(test_images_dir)  
+    system_utils.del_dir(mask_images_dir)
     
 if __name__ == '__main__':
     run_colmap_kitti(result=None)

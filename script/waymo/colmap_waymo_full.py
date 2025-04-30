@@ -1,3 +1,4 @@
+import pathlib
 import sqlite3
 import os
 import numpy as np
@@ -14,6 +15,7 @@ from lib.config import cfg
 from lib.utils.waymo_utils import load_camera_info
 from lib.utils.data_utils import get_val_frames
 from lib.utils.colmap_utils import read_extrinsics_binary, qvec2rotmat
+from lib.utils import system_utils
 
 image_filename_to_cam = lambda x: int(x.split('/')[0].split('_')[1]) # cam_{cam_id}/{frame}.png
 
@@ -37,16 +39,10 @@ def run_colmap_waymo(result):
         test_images_dir = os.path.join(colmap_dir, 'test_imgs', f'cam_{unqiue_cam}')
         mask_images_dir = os.path.join(colmap_dir, 'mask', f'cam_{unqiue_cam}')
         
-        # if os.path.exists(train_images_dir):
-        #     os.system(f'rm -rf {train_images_dir}')
         os.makedirs(train_images_dir, exist_ok=True)
         
-        # if os.path.exists(test_images_dir):
-        #     os.system(f'rm -rf {test_images_dir}')  
         os.makedirs(test_images_dir, exist_ok=True)
         
-        # if os.path.exists(mask_images_dir):
-        #     os.system(f'rm -rf {mask_images_dir}')
         os.makedirs(mask_images_dir, exist_ok=True)
     
     train_images_dir = os.path.join(colmap_dir, 'train_imgs')
@@ -223,7 +219,8 @@ def run_colmap_waymo(result):
 
     # create points3D.txt
     points3D_fn = os.path.join(model_dir, 'points3D.txt')
-    os.system(f'touch {points3D_fn}')
+    file_path = pathlib.Path(points3D_fn)
+    file_path.touch(exist_ok=True)
     
     # create rid ba config
     cam_rigid = dict()
@@ -290,10 +287,11 @@ def run_colmap_waymo(result):
                 --BundleAdjustment.refine_focal_length 0 \
                 --BundleAdjustment.refine_principal_point 0 \
                 --BundleAdjustment.refine_extra_params 0')
+    
+    system_utils.del_dir(train_images_dir)
+    system_utils.del_dir(test_images_dir)  
+    system_utils.del_dir(mask_images_dir)
 
-    os.system(f'rm -rf {train_images_dir}')
-    os.system(f'rm -rf {test_images_dir}')  
-    os.system(f'rm -rf {mask_images_dir}')
     
 if __name__ == '__main__':
     run_colmap_waymo(result=None)
