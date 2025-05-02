@@ -1,5 +1,9 @@
-- downgrade vs to 2019 community
+- pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
+
+- window only: downgrade vs to 2019 community
 
 - add INCLUDE, LIB env variable, solving "casset" problem :https://blog.csdn.net/yaotuzhi/article/details/107144454
 
 - install colmap first
+
+- cuda.runtime.h not in directory: conda install nvidia/label/cuda-11.8.0::cuda-cudart-dev
