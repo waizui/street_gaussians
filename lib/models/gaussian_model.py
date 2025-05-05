@@ -103,7 +103,7 @@ class GaussianModel(nn.Module):
         
     def load_ply(self, path=None, input_ply=None):
         if path is None:
-            plydata = input_ply
+            plydata:PlyData = input_ply
         else:
             plydata = PlyData.read(path)
             plydata = plydata.elements[0]

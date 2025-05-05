@@ -27,10 +27,10 @@ model:
     opt_track: true
 
 train:
-  iterations: 50000
-  test_iterations: [7000, 30000, 50000]
-  save_iterations: [50000]
-  checkpoint_iterations: [50000]
+  iterations: 7000
+  test_iterations: [4000]
+  save_iterations: [7000]
+  checkpoint_iterations: [7000]
 
 optim:
   prune_box_interval: 100
