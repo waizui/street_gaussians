@@ -268,7 +268,6 @@ def get_obj_pose_tracking(datadir, selected_frames, ego_poses, cameras=[0, 1, 2,
         [visible_objects_ids[..., None], visible_objects_pose_vehicle], axis=-1
     )
     
-    
     return objects_tracklets_world, objects_tracklets_vehicle, objects_info
 
 def padding_tracklets(tracklets, frame_timestamps, min_timestamp, max_timestamp):

@@ -9,10 +9,10 @@ from lib.models.scene import Scene
 from plyfile import PlyData, PlyElement
 
 
-inverse_opacity = lambda x: np.log(x/(1-x))
-inverse_scale = lambda x: np.log(x)
+def export_full():
+    inverse_opacity = lambda x: np.log(x/(1-x))
+    inverse_scale = lambda x: np.log(x)
 
-if __name__ == '__main__':
     frame_id = cfg.viewer.frame_id 
     
     dataset = Dataset()
@@ -77,4 +77,7 @@ if __name__ == '__main__':
     
     elements = PlyElement.describe(elements, 'vertex')
     PlyData([elements]).write(os.path.join(pointcloud_dir, 'point_cloud.ply'))
+
     
+if __name__ == '__main__':
+    export_full()

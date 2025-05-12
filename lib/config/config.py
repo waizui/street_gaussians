@@ -149,7 +149,8 @@ cfg.viewer.frame_id = 0 # Select the frame_id (start from 0) to save for viewer
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--config", default="configs/default.yaml", type=str)
+# parser.add_argument("--config", default="configs/default.yaml", type=str)
+parser.add_argument("--config", default="configs/example/waymo_train_031.yaml", type=str)
 parser.add_argument("--mode", type=str, default="")
 parser.add_argument('--det', type=str, default='')
 parser.add_argument('--local_rank', type=int, default=0)
