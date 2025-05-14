@@ -373,7 +373,7 @@ def generate_dataparser_outputs(
     frames_timestamps = np.array(frames_timestamps) - timestamp_offset
     min_timestamp, max_timestamp = min(cams_timestamps.min(), frames_timestamps.min()), max(cams_timestamps.max(), frames_timestamps.max())
  
-    _, object_tracklets_vehicle, object_info = get_obj_pose_tracking(
+    obj_tracklets_world, object_tracklets_vehicle, object_info = get_obj_pose_tracking(
         datadir, 
         selected_frames, 
         ego_frame_poses,
@@ -394,6 +394,8 @@ def generate_dataparser_outputs(
     result['ixts'] = ixts
     result['poses'] = poses
     result['c2ws'] = c2ws
+    result['ego_poses'] = ego_frame_poses
+    result['obj_tracklets_world'] = obj_tracklets_world
     result['obj_tracklets'] = object_tracklets_vehicle
     result['obj_info'] = object_info 
     result['frames'] = frames
