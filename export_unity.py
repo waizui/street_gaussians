@@ -21,7 +21,9 @@ class Trajectory:
 
 def read_origin_data():
     path = "./data/waymo/training/031"
-    frames = [50, 60]
+    start_frame = 50
+    end_frame = 60
+    frames = [start_frame, end_frame]
     cameras = [0, 1, 2]
 
     """
@@ -43,44 +45,50 @@ def read_origin_data():
     """
 
     res = waymo_utils.generate_dataparser_outputs(path, frames, False, cameras=cameras)
-    test_tracklets(res)
+    test_tracklets(frames, res)
 
 
-def test_tracklets(outputs):
+def test_tracklets(frames, outputs):
     # [num_frames, max_obj, track_id, x, y, z, qw, qx, qy, qz] ,3-dim
-    tr_w = outputs["obj_tracklets_world"]
-    tr_o = outputs["obj_tracklets"]
-    assert tr_w.shape == tr_o.shape
+    tkls_w = outputs["obj_tracklets_world"]
+    tkls_o = outputs["obj_tracklets"]
+    nframes = outputs["num_frames"]
+    assert tkls_w.shape == tkls_o.shape
 
     ego_poses = outputs["ego_poses"]  # [num_frames, 4, 4]
 
-    nframes = outputs["num_frames"]
-    for frame_id in range(nframes):
-        obj_ids = tr_w[frame_id, :, 0] > 0
+    # obj_tracklets = object_tracklets_vehicle[frames_idx[i]]
+    frames_idx = outputs["frames_idx"]
 
-        for obj_idx in np.where(obj_ids)[0]:
-            trackid = tr_w[frame_id, obj_idx, 0]
-            pos_rot_w = tr_w[frame_id, obj_idx, 1:].flatten()
-            pos_rot_o = tr_o[frame_id, obj_idx, 1:].flatten()
+    for frame_idx in frames_idx:
+        frame_tkls_w = tkls_w[frame_idx]
+        frame_tkls_o = tkls_o[frame_idx]
 
-            rotz_mat = (
-                general_utils.quaternion_to_matrix(torch.tensor(pos_rot_o[None, -4:]))
-                .reshape((3, 3))
-                .cpu()
-                .numpy()
-            )
+        trackid_w = frame_tkls_w[:, 0]
+        trackid_o = frame_tkls_o[:, 0]
 
+        if trackid_o < 0 or trackid_w < 0:
+            continue
+
+        assert np.array_equal(trackid_w, trackid_o)
+
+        pos_rot_w = frame_tkls_w[:, 1:]
+        pos_rot_o = frame_tkls_o[:, 1:]
+
+        rotz_mats = (
+            general_utils.quaternion_to_matrix(torch.tensor(pos_rot_o[:, -4:]))
+            .cpu()
+            .numpy()
+        )
+
+        ego_pose = ego_poses[frames[0] + frame_idx]  # start-frame based indexing
+
+        for i, rotz_mat in enumerate(rotz_mats):
             obj_pose = np.eye(4)
             obj_pose[:3, :3] = rotz_mat
-            obj_pose[:3, 3] = np.array(pos_rot_o[:3])
-
-            ego = ego_poses[frame_id]
-            res_mut = ego @ obj_pose
-
-            print(res_mut[:3, 3])
-            print("-" * 20)
-            print(pos_rot_w[:3])
-            assert np.isclose(res_mut[:3, 3], pos_rot_w[:3], rtol=1e-5).all()
+            obj_pose[:3, 3] = np.array(pos_rot_o[i, :3])
+            res_mut = ego_pose @ obj_pose
+            assert np.isclose(res_mut[:3, 3], pos_rot_w[i, :3], rtol=1e-5).all()
 
 
 def export_tracks():
