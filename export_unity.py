@@ -5,37 +5,32 @@ import torch
 
 
 class Transform:
-    pos: list
-    trans: list
-    rot: list
-    mat_o2w: list
+    pos_rot: list
+
+    def __init__(self, pos_rot) -> None:
+        self.pos_rot = pos_rot
 
 
 class Trajectory:
-    obj_id: int
+    id_obj: int
+    transform: list
 
-    def __init__(self) -> None:
+    def __init__(self, id) -> None:
         self.transform = []
-        self.obj_id = -1
+        self.id_obj = id
 
 
-def read_origin_data():
-    path = "./data/waymo/training/031"
-    start_frame = 50
-    end_frame = 60
-    frames = [start_frame, end_frame]
-    cameras = [0, 1, 2]
-
+def read_origin_data(path, frames, cameras=[0, 1, 2]):
     """
     result['num_frames'] = num_frames
     result['exts'] = exts
     result['ixts'] = ixts
     result['poses'] = poses
-    result['c2ws'] = c2ws  
+    result['c2ws'] = c2ws
     result['ego_poses'] = ego_frame_poses
     result['obj_tracklets_world'] = obj_tracklets_world # np.matmul(ego_pose, obj_pose_vehicle)
     result['obj_tracklets'] = object_tracklets_vehicle
-    result['obj_info'] = object_info 
+    result['obj_info'] = object_info
     result['frames'] = frames
     result['cams'] = cams
     result['frames_idx'] = frames_idx
@@ -43,57 +38,29 @@ def read_origin_data():
     result['cams_timestamps'] = cams_timestamps
     result['tracklet_timestamps'] = frames_timestamps
     """
-
-    res = waymo_utils.generate_dataparser_outputs(path, frames, False, cameras=cameras)
-    test_tracklets(frames, res)
-
-
-def test_tracklets(frames, outputs):
-    # [num_frames, max_obj, track_id, x, y, z, qw, qx, qy, qz] ,3-dim
-    tkls_w = outputs["obj_tracklets_world"]
-    tkls_o = outputs["obj_tracklets"]
-    nframes = outputs["num_frames"]
-    assert tkls_w.shape == tkls_o.shape
-
-    ego_poses = outputs["ego_poses"]  # [num_frames, 4, 4]
-
-    # obj_tracklets = object_tracklets_vehicle[frames_idx[i]]
-    frames_idx = outputs["frames_idx"]
-
-    for frame_idx in frames_idx:
-        frame_tkls_w = tkls_w[frame_idx]
-        frame_tkls_o = tkls_o[frame_idx]
-
-        trackid_w = frame_tkls_w[:, 0]
-        trackid_o = frame_tkls_o[:, 0]
-
-        if trackid_o < 0 or trackid_w < 0:
-            continue
-
-        assert np.array_equal(trackid_w, trackid_o)
-
-        pos_rot_w = frame_tkls_w[:, 1:]
-        pos_rot_o = frame_tkls_o[:, 1:]
-
-        rotz_mats = (
-            general_utils.quaternion_to_matrix(torch.tensor(pos_rot_o[:, -4:]))
-            .cpu()
-            .numpy()
-        )
-
-        ego_pose = ego_poses[frames[0] + frame_idx]  # start-frame based indexing
-        nitem = rotz_mats.shape[0]
-        obj_pose = np.zeros(nitem * 4 * 4).reshape([nitem, 4, 4])
-        obj_pose[:, :, :] = np.eye(4)
-        obj_pose[:, :3, :3] = rotz_mats
-        obj_pose[:, :3, 3] = np.array(pos_rot_o[:, :3])
-        res_mut = ego_pose @ obj_pose
-        assert np.isclose(res_mut[:, :3, 3], pos_rot_w[:, :3], rtol=1e-5).all()
-    print("test passed")
+    return waymo_utils.generate_dataparser_outputs(path, frames, False, cameras=cameras)
 
 
 def export_tracks():
-    read_origin_data()
+    path = "./data/waymo/training/031"
+    frames = [1, 120]
+    data_org = read_origin_data(path, frames)
+
+    frames_idx = data_org["frames_idx"]
+
+    tkls_w = data_org["obj_tracklets_world"]
+    max_obj = tkls_w.shape[1]
+    trajectories = [Trajectory(i) for i in range(max_obj)]
+
+    for frame_idx in frames_idx:
+        frame_tkls_w = tkls_w[frame_idx]
+        for obj in range(max_obj):
+            frame_tkl_w = frame_tkls_w[obj]
+            if frame_tkl_w[0] < 0:
+                break
+            t = Transform(frame_tkl_w[1:])
+            trajectories[obj].transform.append(t)
+    return trajectories
 
 
 if __name__ == "__main__":
