@@ -82,13 +82,14 @@ def test_tracklets(frames, outputs):
         )
 
         ego_pose = ego_poses[frames[0] + frame_idx]  # start-frame based indexing
-
-        for i, rotz_mat in enumerate(rotz_mats):
-            obj_pose = np.eye(4)
-            obj_pose[:3, :3] = rotz_mat
-            obj_pose[:3, 3] = np.array(pos_rot_o[i, :3])
-            res_mut = ego_pose @ obj_pose
-            assert np.isclose(res_mut[:3, 3], pos_rot_w[i, :3], rtol=1e-5).all()
+        nitem = rotz_mats.shape[0]
+        obj_pose = np.zeros(nitem * 4 * 4).reshape([nitem, 4, 4])
+        obj_pose[:, :, :] = np.eye(4)
+        obj_pose[:, :3, :3] = rotz_mats
+        obj_pose[:, :3, 3] = np.array(pos_rot_o[:, :3])
+        res_mut = ego_pose @ obj_pose
+        assert np.isclose(res_mut[:, :3, 3], pos_rot_w[:, :3], rtol=1e-5).all()
+    print("test passed")
 
 
 def export_tracks():
