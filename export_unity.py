@@ -1,23 +1,16 @@
 from lib.utils import waymo_utils
-from lib.utils import general_utils
+from lib.utils import system_utils
 import numpy as np
-import torch
-
-
-class Transform:
-    pos_rot: list
-
-    def __init__(self, pos_rot) -> None:
-        self.pos_rot = pos_rot
+import os
 
 
 class Trajectory:
-    id_obj: int
-    transform: list
+    trackdata: list  # [track_id, x, y, z, qw, qx, qy, qz]
+    obj_id: int
 
     def __init__(self, id) -> None:
-        self.transform = []
-        self.id_obj = id
+        self.obj_id = id
+        self.trackdata = []
 
 
 def read_origin_data(path, frames, cameras=[0, 1, 2]):
@@ -41,16 +34,14 @@ def read_origin_data(path, frames, cameras=[0, 1, 2]):
     return waymo_utils.generate_dataparser_outputs(path, frames, False, cameras=cameras)
 
 
-def export_tracks():
-    path = "./data/waymo/training/031"
-    frames = [1, 120]
+def read_trajectory(path, frames):
     data_org = read_origin_data(path, frames)
 
     frames_idx = data_org["frames_idx"]
 
     tkls_w = data_org["obj_tracklets_world"]
     max_obj = tkls_w.shape[1]
-    trajectories = [Trajectory(i) for i in range(max_obj)]
+    traj_arr = [Trajectory(i) for i in range(max_obj)]
 
     for frame_idx in frames_idx:
         frame_tkls_w = tkls_w[frame_idx]
@@ -58,10 +49,29 @@ def export_tracks():
             frame_tkl_w = frame_tkls_w[obj]
             if frame_tkl_w[0] < 0:
                 break
-            t = Transform(frame_tkl_w[1:])
-            trajectories[obj].transform.append(t)
-    return trajectories
+            traj_arr[obj].trackdata.append(frame_tkl_w)
+    return traj_arr
+
+
+def export_trajectory(path, frames):
+    """
+    [obj_id, track_id, x, y, z, qw, qx, qy, qz]
+    """
+    exp_path = "./output/" + os.path.relpath(path, os.getcwd()) + "/trajectories.csv"
+    system_utils.mkdir_p(os.path.dirname(exp_path))
+    trajs = read_trajectory(path, frames)
+
+    with open(exp_path, "w") as f:
+        lines = []
+        for tj in trajs:
+            for tr in tj.trackdata:
+                line = str(tj.obj_id) + "," + ",".join(tr.flatten().astype(str)) + "\n"
+                lines.append(line)
+        f.writelines(lines)
 
 
 if __name__ == "__main__":
-    export_tracks()
+    path = "./data/waymo/training/031"
+    frames = [1, 120]
+    export_trajectory(path, frames)
+    print("finished")
