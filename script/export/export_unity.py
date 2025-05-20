@@ -3,7 +3,6 @@ from lib.utils import system_utils
 import numpy as np
 import os
 
-
 class Trajectory:
     trackdata: list  # [track_id, x, y, z, qw, qx, qy, qz]
     obj_id: int
@@ -70,8 +69,9 @@ def export_trajectory(path, frames):
         f.writelines(lines)
 
 
+
 if __name__ == "__main__":
     path = "./data/waymo/training/031"
-    frames = [1, 120]
+    frames = [0, 90]
     export_trajectory(path, frames)
     print("finished")

@@ -103,6 +103,10 @@ class StreetGaussianModel(nn.Module):
             plydata_list.append(plydata)
 
         PlyData(plydata_list).write(path)
+
+    def save_plys(self,path):
+        #TODO impl
+        print(f"save plys to {path}")
         
     def load_ply(self, path):
         plydata_list = PlyData.read(path).elements
