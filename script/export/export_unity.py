@@ -1,7 +1,10 @@
-from lib.utils import waymo_utils
-from lib.utils import system_utils
-import numpy as np
 import os
+import sys
+sys.path.append(os.getcwd())
+from lib.utils import waymo_utils
+import numpy as np
+import export_util
+
 
 class Trajectory:
     trackdata: list  # [track_id, x, y, z, qw, qx, qy, qz]
@@ -56,8 +59,7 @@ def export_trajectory(path, frames):
     """
     [obj_id, track_id, x, y, z, qw, qx, qy, qz]
     """
-    exp_path = "./output/" + os.path.relpath(path, os.getcwd()) + "/trajectories.csv"
-    system_utils.mkdir_p(os.path.dirname(exp_path))
+    exp_path = export_util.get_export_path(path, "trajectories.csv")
     trajs = read_trajectory(path, frames)
 
     with open(exp_path, "w") as f:
@@ -67,7 +69,7 @@ def export_trajectory(path, frames):
                 line = str(tj.obj_id) + "," + ",".join(tr.flatten().astype(str)) + "\n"
                 lines.append(line)
         f.writelines(lines)
-
+    print(f"trajectory written to {exp_path}")
 
 
 if __name__ == "__main__":
