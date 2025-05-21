@@ -3,8 +3,9 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-import shutil
 from lib.config import cfg
+cfg.mode = "evaluate" # not training
+import shutil
 from lib.models.scene import Scene
 from plyfile import PlyData, PlyElement
 from lib.models.scene import Scene
@@ -14,9 +15,6 @@ import export_util
 
 
 def export_model_plys(path):
-    inverse_opacity = lambda x: np.log(x / (1 - x))
-    inverse_scale = lambda x: np.log(x)
-
     frame_id = 50
 
     dataset = Dataset()
