@@ -4,7 +4,7 @@ import numpy as np
 import os
 from simple_knn._C import distCUDA2
 from lib.config import cfg
-from lib.utils.general_utils import inverse_sigmoid, get_expon_lr_func, quaternion_to_matrix
+from lib.utils.general_utils import inverse_sigmoid, get_expon_lr_func, quaternion_to_matrix, quaternion_to_matrix_numpy
 from lib.utils.sh_utils import RGB2SH
 from lib.utils.graphics_utils import BasicPointCloud
 from lib.utils.general_utils import strip_symmetric, build_scaling_rotation
@@ -78,7 +78,13 @@ class GaussianModel(nn.Module):
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
 
     def make_ply(self):
+        # y_up_quaternion = [ 0.5, -0.5, 0.5, -0.5 ] # euler( x:-pi/2, y:pi/2 , z:0)
+        # y_up_mat = quaternion_to_matrix_numpy(np.array(y_up_quaternion)) 
+        # print(f"shape of xyz:{self._xyz.shape}")
+        # trans_mat   = y_up_mat@ np.array([[1,0,0],[0,-1,0],[0,0,1]]) # to right-handedness
+        # xyz = self._xyz.matmul(torch.tensor(trans_mat,dtype=self._xyz.dtype, device=self._xyz.device)).detach().cpu().numpy()
         xyz = self._xyz.detach().cpu().numpy()
+
         normals = np.zeros_like(xyz)
         f_dc = self._features_dc.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
         f_rest = self._features_rest.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
