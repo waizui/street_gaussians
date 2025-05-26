@@ -63,9 +63,9 @@ def read_trajectory(path, frames):
                 break
 
             pos = frame_tkl_w[1:4]
-            frame_tkl_w[1:4] = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]]) @ np.array(
-                pos
-            )
+            y_up_mat = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
+            frame_tkl_w[1:4] = y_up_mat @ np.array(pos)
+
             track_id = frame_tkl_w[0]
             if (track_id) not in traj_arr:
                 traj_arr[track_id] = Trajectory(track_id)
@@ -79,7 +79,10 @@ def export_trajectory(path, frames):
     """
     [obj_id, frame_id, track_id, x, y, z, qw, qx, qy, qz]
     """
-    exp_path = export_util.get_export_path(path, "trajectories.csv")
+    exp_path = export_util.get_export_path(
+        path, f"trajectories_frames_{frames[0]}_{frames[1]}.csv"
+    )
+
     trajs = read_trajectory(path, frames)
 
     with open(exp_path, "w") as f:
