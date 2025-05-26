@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.append(os.getcwd())
 from lib.utils import waymo_utils
 import numpy as np
@@ -7,12 +8,21 @@ import export_util
 
 
 class Trajectory:
-    trackdata: list  # [track_id, x, y, z, qw, qx, qy, qz]
-    obj_id: int
+    id: int
 
     def __init__(self, id) -> None:
-        self.obj_id = id
-        self.trackdata = []
+        self.id = id
+        # (num_frames,track_id) , [track_id, num_frames , x, y, z, qw, qx, qy, qz]
+        self.dict_trackdata = {}
+
+    def get_trackdata(self):
+        return self.dict_trackdata.values()
+
+    def append(self, data):
+        key = (data[0], data[1])
+        if key in self.dict_trackdata:
+            return
+        self.dict_trackdata[key] = data
 
 
 def read_origin_data(path, frames, cameras=[0, 1, 2]):
@@ -41,23 +51,33 @@ def read_trajectory(path, frames):
 
     frames_idx = data_org["frames_idx"]
 
+    # [num_frames, max_obj, len[track_id, x, y, z, qw, qx, qy, qz]]
     tkls_w = data_org["obj_tracklets_world"]
     max_obj = tkls_w.shape[1]
-    traj_arr = [Trajectory(i) for i in range(max_obj)]
+    traj_arr = {}
 
-    for frame_idx in frames_idx:
-        frame_tkls_w = tkls_w[frame_idx]
+    for cam_id, frame_idx in enumerate(frames_idx):
         for obj in range(max_obj):
-            frame_tkl_w = frame_tkls_w[obj]
-            if frame_tkl_w[0] < 0:
+            frame_tkl_w = tkls_w[frame_idx][obj]
+            if frame_tkl_w[0] < 0:  # -1 no data
                 break
-            traj_arr[obj].trackdata.append(frame_tkl_w)
-    return traj_arr
+
+            pos = frame_tkl_w[1:4]
+            frame_tkl_w[1:4] = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]]) @ np.array(
+                pos
+            )
+            track_id = frame_tkl_w[0]
+            if (track_id) not in traj_arr:
+                traj_arr[track_id] = Trajectory(track_id)
+
+            data = np.insert(frame_tkl_w, 1, frame_idx)
+            traj_arr[track_id].append(data)
+    return traj_arr.values()
 
 
 def export_trajectory(path, frames):
     """
-    [obj_id, track_id, x, y, z, qw, qx, qy, qz]
+    [obj_id, frame_id, track_id, x, y, z, qw, qx, qy, qz]
     """
     exp_path = export_util.get_export_path(path, "trajectories.csv")
     trajs = read_trajectory(path, frames)
@@ -65,8 +85,8 @@ def export_trajectory(path, frames):
     with open(exp_path, "w") as f:
         lines = []
         for tj in trajs:
-            for tr in tj.trackdata:
-                line = str(tj.obj_id) + "," + ",".join(tr.flatten().astype(str)) + "\n"
+            for tr in tj.get_trackdata():
+                line = ",".join(tr.flatten().astype(str)) + "\n"
                 lines.append(line)
         f.writelines(lines)
     print(f"trajectory written to {exp_path}")

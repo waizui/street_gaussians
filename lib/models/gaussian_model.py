@@ -4,7 +4,7 @@ import numpy as np
 import os
 from simple_knn._C import distCUDA2
 from lib.config import cfg
-from lib.utils.general_utils import inverse_sigmoid, get_expon_lr_func, quaternion_to_matrix, quaternion_to_matrix_numpy
+from lib.utils.general_utils import inverse_sigmoid, get_expon_lr_func, matrix_to_quaternion, quaternion_to_matrix, quaternion_to_matrix_numpy
 from lib.utils.sh_utils import RGB2SH
 from lib.utils.graphics_utils import BasicPointCloud
 from lib.utils.general_utils import strip_symmetric, build_scaling_rotation
@@ -77,22 +77,51 @@ class GaussianModel(nn.Module):
         self._semantic = nn.Parameter(semamtics.requires_grad_(True))
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
 
-    def make_ply(self):
-        # y_up_quaternion = [ 0.5, -0.5, 0.5, -0.5 ] # euler( x:-pi/2, y:pi/2 , z:0)
-        # y_up_mat = quaternion_to_matrix_numpy(np.array(y_up_quaternion)) 
-        # print(f"shape of xyz:{self._xyz.shape}")
-        # trans_mat   = y_up_mat@ np.array([[1,0,0],[0,-1,0],[0,0,1]]) # to right-handedness
-        # xyz = self._xyz.matmul(torch.tensor(trans_mat,dtype=self._xyz.dtype, device=self._xyz.device)).detach().cpu().numpy()
-        xyz = self._xyz.detach().cpu().numpy()
+    def quat_mul_batch(self,q2, q1):
+        # q1: (N, 4), q2: (4,) or (N, 4)
+        w1, x1, y1, z1 = q1[:, 0], q1[:, 1], q1[:, 2], q1[:, 3]
+        w2, x2, y2, z2 = q2[0], q2[1], q2[2], q2[3]  # broadcasted if shape (4,)
+        return torch.stack([
+            w1*w2 - x1*x2 - y1*y2 - z1*z2,
+            w1*x2 + x1*w2 + y1*z2 - z1*y2,
+            w1*y2 - x1*z2 + y1*w2 + z1*x2,
+            w1*z2 + x1*y2 - y1*x2 + z1*w2
+        ], dim=1)  # shape (N, 4)
 
+    def make_ply_yup(self):
+        y_up_quaternion = [ 0.5, 0.5, 0.5, 0.5 ] # euler( x:pi/2, y:pi/2 , z:0)
+        y_up_mat = quaternion_to_matrix_numpy(np.array(y_up_quaternion)) 
+        trans_mat   = y_up_mat
+        xyz = self._xyz.matmul(torch.tensor(trans_mat,dtype=self._xyz.dtype, device=self._xyz.device)).detach().cpu().numpy()
+        normals = np.zeros_like(xyz)
+        f_dc = self._features_dc.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
+        f_rest = self._features_rest.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
+        opacities = self._opacity.detach().cpu().numpy()
+        scale = self._scaling.detach().cpu().numpy()
+        
+        # there is a bug, rotation not work as expected
+        y_up_quaternions = torch.tensor([ 0.5, 0.5, 0.5, 0.5 ],device=self._rotation.device)
+        y_up_quaternions = y_up_quaternions.expand(self._rotation.shape)
+        rotation = self.quat_mul_batch(y_up_quaternions,self._rotation).detach().cpu().numpy()
+
+        semantic = self._semantic.detach().cpu().numpy() 
+        dtype_full = [(attribute, 'f4') for attribute in self.construct_list_of_attributes()]
+
+        elements = np.empty(xyz.shape[0], dtype=dtype_full)
+        attributes = np.concatenate((xyz, normals, f_dc, f_rest, opacities, scale, rotation, semantic), axis=1)
+        elements[:] = list(map(tuple, attributes))
+        
+        return elements
+
+    def make_ply(self):
+        xyz = self._xyz.detach().cpu().numpy()
         normals = np.zeros_like(xyz)
         f_dc = self._features_dc.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
         f_rest = self._features_rest.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
         opacities = self._opacity.detach().cpu().numpy()
         scale = self._scaling.detach().cpu().numpy()
         rotation = self._rotation.detach().cpu().numpy()
-        semantic = self._semantic.detach().cpu().numpy()
-
+        semantic = self._semantic.detach().cpu().numpy() 
         dtype_full = [(attribute, 'f4') for attribute in self.construct_list_of_attributes()]
 
         elements = np.empty(xyz.shape[0], dtype=dtype_full)
