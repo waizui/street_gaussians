@@ -63,7 +63,7 @@ def read_trajectory(path, frames):
                 break
 
             pos = frame_tkl_w[1:4]
-            frame_tkl_w[1:4] = np.array([[0, 0, 1], [1, 0, 0], [0, 1, 0]]) @ np.array(
+            frame_tkl_w[1:4] = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]]) @ np.array(
                 pos
             )
             track_id = frame_tkl_w[0]
