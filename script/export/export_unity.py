@@ -50,6 +50,7 @@ def read_trajectory(path, frames):
     data_org = read_origin_data(path, frames)
 
     frames_idx = data_org["frames_idx"]
+    stamps = data_org["tracklet_timestamps"]
 
     # [num_frames, max_obj, len[track_id, x, y, z, qw, qx, qy, qz]]
     tkls_w = data_org["obj_tracklets_world"]
@@ -71,13 +72,14 @@ def read_trajectory(path, frames):
                 traj_arr[track_id] = Trajectory(track_id)
 
             data = np.insert(frame_tkl_w, 1, frame_idx)
+            data = np.append(data,stamps[frame_idx])
             traj_arr[track_id].append(data)
     return traj_arr.values()
 
 
 def export_trajectory(path, frames):
     """
-    [obj_id, frame_id, track_id, x, y, z, qw, qx, qy, qz]
+    [track_id, frame_id, x, y, z, qw, qx, qy, qz]
     """
     exp_path = export_util.get_export_path(
         path, f"trajectories_frames_{frames[0]}_{frames[1]}.csv"
