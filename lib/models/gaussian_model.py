@@ -89,6 +89,7 @@ class GaussianModel(nn.Module):
         ], dim=1)  # shape (N, 4)
 
     def make_ply_yup(self):
+        # TODO: Rotation
         y_up_quaternion = [ 0.5, 0.5, 0.5, 0.5 ] # euler( x:pi/2, y:pi/2 , z:0)
         y_up_mat = quaternion_to_matrix_numpy(np.array(y_up_quaternion)) 
         trans_mat   = y_up_mat
