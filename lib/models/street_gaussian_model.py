@@ -105,13 +105,21 @@ class StreetGaussianModel(nn.Module):
             plydata_list.append(plydata)
 
         PlyData(plydata_list).write(path)
+    
 
     def save_plys(self, dir):
+        """
+        Save model separately, sh coefficients are transformed
+        """
         mkdir_p(dir)
         for i in range(self.models_num):
             model_name = self.model_name_id.inverse[i]
             model: GaussianModel = getattr(self, model_name)
-            plydata = model.make_ply()
+            plydata= None
+            if isinstance(model,GaussianModelActor):
+                plydata = model.make_ply_fourier()
+            else:
+                plydata = model.make_ply()
             plydata = PlyElement.describe(plydata, f"vertex")
             plypath = os.path.join(dir, f"{model_name }.ply")
             PlyData([plydata]).write(plypath)

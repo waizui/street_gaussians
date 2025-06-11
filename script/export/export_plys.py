@@ -47,9 +47,6 @@ def export_model_plys(path):
     exp_dir = export_util.get_export_dir(path, True)
     gaussians.save_plys(exp_dir)
 
-    colors = calc_colors(gaussians, viewpoint_camera.camera_center)
-    print(colors.shape)
-
 
 def calc_colors(t: StreetGaussianModel, camera_center):
     colors = []

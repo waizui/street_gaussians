@@ -88,32 +88,6 @@ class GaussianModel(nn.Module):
             w1*z2 + x1*y2 - y1*x2 + z1*w2
         ], dim=1)  # shape (N, 4)
 
-    def make_ply_yup(self):
-        # TODO: Rotation
-        y_up_quaternion = [ 0.5, 0.5, 0.5, 0.5 ] # euler( x:pi/2, y:pi/2 , z:0)
-        y_up_mat = quaternion_to_matrix_numpy(np.array(y_up_quaternion)) 
-        trans_mat   = y_up_mat
-        xyz = self._xyz.matmul(torch.tensor(trans_mat,dtype=self._xyz.dtype, device=self._xyz.device)).detach().cpu().numpy()
-        normals = np.zeros_like(xyz)
-        f_dc = self._features_dc.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
-        f_rest = self._features_rest.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
-        opacities = self._opacity.detach().cpu().numpy()
-        scale = self._scaling.detach().cpu().numpy()
-        
-        # there is a bug, rotation not work as expected
-        y_up_quaternions = torch.tensor([ 0.5, 0.5, 0.5, 0.5 ],device=self._rotation.device)
-        y_up_quaternions = y_up_quaternions.expand(self._rotation.shape)
-        rotation = self.quat_mul_batch(y_up_quaternions,self._rotation).detach().cpu().numpy()
-
-        semantic = self._semantic.detach().cpu().numpy() 
-        dtype_full = [(attribute, 'f4') for attribute in self.construct_list_of_attributes()]
-
-        elements = np.empty(xyz.shape[0], dtype=dtype_full)
-        attributes = np.concatenate((xyz, normals, f_dc, f_rest, opacities, scale, rotation, semantic), axis=1)
-        elements[:] = list(map(tuple, attributes))
-        
-        return elements
-
     def make_ply(self):
         xyz = self._xyz.detach().cpu().numpy()
         normals = np.zeros_like(xyz)

@@ -73,12 +73,47 @@ class GaussianModelActor(GaussianModel):
         time = self.fourier_scale * normalized_frame
 
         idft_base = IDFT(time, self.fourier_dim)[0].cuda()
-        features_dc = self._features_dc # [N, C, 3]
+        features_dc = self._features_dc # [N, C, 3] 
         features_dc = torch.sum(features_dc * idft_base[..., None], dim=1, keepdim=True) # [N, 1, 3]
         features_rest = self._features_rest # [N, sh, 3]
-        features = torch.cat([features_dc, features_rest], dim=1) # [N, (sh + 1) * C, 3]
+        features = torch.cat([features_dc, features_rest], dim=1) # [N, (sh + 1) * C, 3] eg. [N,4,3] of sh_deg=1
         return features
            
+    def make_ply_fourier(self):
+        xyz = self._xyz.detach().cpu().numpy()
+        normals = np.zeros_like(xyz)
+        features = self.get_features_fourier(self.start_frame+1) # absolute frame
+        print(f"features:{features.shape}")
+        features =  features.detach().flatten(start_dim=1).contiguous().cpu().numpy()
+        opacities = self._opacity.detach().cpu().numpy()
+        scale = self._scaling.detach().cpu().numpy()
+        rotation = self._rotation.detach().cpu().numpy()
+        semantic = self._semantic.detach().cpu().numpy() 
+
+        dtype_full = [(attribute, 'f4') for attribute in self.construct_list_of_attributes_fourier()]
+
+        elements = np.empty(xyz.shape[0], dtype=dtype_full)
+        attributes = np.concatenate((xyz, normals, features, opacities, scale, rotation, semantic), axis=1)
+        elements[:] = list(map(tuple, attributes))
+        
+        return elements
+
+    def construct_list_of_attributes_fourier(self):
+        l = ['x', 'y', 'z', 'nx', 'ny', 'nz']
+        for i in range(3):
+            l.append('f_dc_{}'.format(i))
+        for i in range(self._features_rest.shape[1] * self._features_rest.shape[2]):
+            l.append('f_rest_{}'.format(i))
+        l.append('opacity')
+        for i in range(self._scaling.shape[1]):
+            l.append('scale_{}'.format(i))
+        for i in range(self._rotation.shape[1]):
+            l.append('rot_{}'.format(i))
+        for i in range(self._semantic.shape[1]):
+            l.append('semantic_{}'.format(i))
+        return l
+
+
     def create_from_pcd(self, spatial_lr_scale):
         pointcloud_path = os.path.join(cfg.model_path, 'input_ply', f'points3D_{self.model_name}.ply')   
         if os.path.exists(pointcloud_path):
