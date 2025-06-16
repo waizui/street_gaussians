@@ -6,6 +6,11 @@ from lib.utils import waymo_utils
 import numpy as np
 import export_util
 
+import torch
+from lib.utils.sh_utils import eval_sh
+from lib.models.street_gaussian_model import StreetGaussianModel
+from lib.models.gaussian_model_actor import GaussianModelActor
+
 
 class Trajectory:
     id: int
@@ -72,7 +77,7 @@ def read_trajectory(path, frames):
                 traj_arr[track_id] = Trajectory(track_id)
 
             data = np.insert(frame_tkl_w, 1, frame_idx)
-            data = np.append(data,stamps[frame_idx])
+            data = np.append(data, stamps[frame_idx])
             traj_arr[track_id].append(data)
     return traj_arr.values()
 
@@ -97,8 +102,30 @@ def export_trajectory(path, frames):
     print(f"trajectory written to {exp_path}")
 
 
+def export_fourier_coeffs(frames, path):
+    frame_id = 50  # testing
+    gaussians, camera = export_util.load_model(frame_id)
+    model_names = []
+    model_names.extend(gaussians.obj_list)
+
+    for model_name in model_names:
+        if model_name == "background":
+            continue
+        model: GaussianModelActor = getattr(gaussians, model_name)
+        coeff = model._features_dc.detach().cpu().transpose(1, 2).numpy()  # [N,3,5]
+        print(f"{model_name}:{coeff.shape}")
+
+        exp_path = export_util.get_export_path(path, f"fourier_coeffs_{model_name}.csv")
+
+        with open(exp_path, "w") as f:
+            line = ",".join(coeff.flatten().astype(str))
+            f.write(line)
+
+
 if __name__ == "__main__":
     path = "./data/waymo/training/031"
     frames = [0, 90]
-    export_trajectory(path, frames)
+    # export_trajectory(path, frames)
+    export_fourier_coeffs(frames, path)
+
     print("finished")
