@@ -7,7 +7,7 @@ import numpy as np
 import export_util
 
 import torch
-from lib.utils.sh_utils import eval_sh
+from lib.utils.sh_utils import IDFT, eval_sh
 from lib.models.street_gaussian_model import StreetGaussianModel
 from lib.models.gaussian_model_actor import GaussianModelActor
 
@@ -112,14 +112,17 @@ def export_fourier_coeffs(frames, path):
         if model_name == "background":
             continue
         model: GaussianModelActor = getattr(gaussians, model_name)
-        coeff = model._features_dc.detach().cpu().transpose(1, 2).numpy()  # [N,3,5]
+        
+        f_coeff = model.get_features_fourier(frame_id)
+        print(f" org:{model_name}:{f_coeff.shape}")
+
+        coeff:np.ndarray = model._features_dc.detach().cpu().transpose(1, 2).numpy()  # [N,3,5]
         print(f"{model_name}:{coeff.shape}")
 
-        exp_path = export_util.get_export_path(path, f"fourier_coeffs_{model_name}.csv")
+        exp_path = export_util.get_export_path(path, f"{model_name}_coeffs.bytes")
 
         with open(exp_path, "w") as f:
-            line = ",".join(coeff.flatten().astype(str))
-            f.write(line)
+            coeff.flatten().astype(np.float32).tofile(f)
 
 
 if __name__ == "__main__":
@@ -127,5 +130,7 @@ if __name__ == "__main__":
     frames = [0, 90]
     # export_trajectory(path, frames)
     export_fourier_coeffs(frames, path)
+
+    
 
     print("finished")
