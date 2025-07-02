@@ -1,16 +1,20 @@
+## 先安装vs2019 community
+  - 勾选上clang tool, cl.exe添加到PATH
+
+## 安装cuda，其他命令可能会安装最新版本，需要下面这个安装指定的
+conda install cuda -c nvidia/label/cuda-11.8.0 
+
+## 安装torch
 - pip install torch==2.0.1+cu118 torchvision==0.15.2+cu118 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
 
-- cuda.runtime.h not in directory: conda install nvidia/label/cuda-11.8.0::cuda-cudart-dev
+## install ninja
+  pip install Ninja
 
-- window only: downgrade vs to 2019 community
-
-- add INCLUDE, LIB env variable, solving "casset" problem :https://blog.csdn.net/yaotuzhi/article/details/107144454
-
-- install colmap first
+## install colmap 
   - linux: sudo apt install colmap 
   - windows: download
-    
 
-- put example data under /data/waymo/traning/
+    
+- put example data under /data/waymo/training/
 
 
